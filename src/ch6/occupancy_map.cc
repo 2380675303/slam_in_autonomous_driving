@@ -7,7 +7,7 @@
 #include "common/math_utils.h"
 
 #include <glog/logging.h>
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -99,7 +99,35 @@ void OccupancyMap::AddLidarFrame(std::shared_ptr<Frame> frame, GridMethod method
 
     if (method == GridMethod::MODEL_POINTS) {
         // 遍历模板，生成白色点
-        std::for_each(std::execution::par_unseq, model_.begin(), model_.end(), [&](const Model2DPoint& pt) {
+        // std::for_each(std::execution::par_unseq, model_.begin(), model_.end(), [&](const Model2DPoint& pt) {
+        //     Vec2i pos_in_image = World2Image(frame->pose_.translation());
+        //     Vec2i pw = pos_in_image + Vec2i(pt.dx_, pt.dy_);  // submap下
+
+        //     if (pt.range_ < closest_th_) {
+        //         // 小距离内认为无物体
+        //         SetPoint(pw, false);
+        //         return;
+        //     }
+
+        //     double angle = pt.angle_ - theta;  // 激光系下角度
+        //     double range = FindRangeInAngle(angle, scan);
+
+        //     if (range < scan->range_min || range > scan->range_max) {
+        //         /// 某方向无测量值时，认为无效
+        //         /// 但离机器比较近时，涂白
+        //         if (pt.range_ < endpoint_close_th_) {
+        //             SetPoint(pw, false);
+        //         }
+        //         return;
+        //     }
+
+        //     if (range > pt.range_ && endpoints.find(pw) == endpoints.end()) {
+        //         /// 末端点与车体连线上的点，涂白
+        //         SetPoint(pw, false);
+        //     }
+        // });
+
+        for (const Model2DPoint& pt : model_) {
             Vec2i pos_in_image = World2Image(frame->pose_.translation());
             Vec2i pw = pos_in_image + Vec2i(pt.dx_, pt.dy_);  // submap下
 
@@ -125,15 +153,21 @@ void OccupancyMap::AddLidarFrame(std::shared_ptr<Frame> frame, GridMethod method
                 /// 末端点与车体连线上的点，涂白
                 SetPoint(pw, false);
             }
-        });
+        }
     } else {
         Vec2i start = World2Image(frame->pose_.translation());
-        std::for_each(std::execution::par_unseq, endpoints.begin(), endpoints.end(),
-                      [this, &start](const auto& pt) { BresenhamFilling(start, pt); });
+        // std::for_each(std::execution::par_unseq, endpoints.begin(), endpoints.end(),
+        //               [this, &start](const auto& pt) { BresenhamFilling(start, pt); });
+        for (const auto& pt : endpoints) {
+            BresenhamFilling(start, pt);
+        }
     }
 
     /// 末端点涂黑
-    std::for_each(endpoints.begin(), endpoints.end(), [this](const auto& pt) { SetPoint(pt, true); });
+    // std::for_each(endpoints.begin(), endpoints.end(), [this](const auto& pt) { SetPoint(pt, true); });
+    for (const auto& pt : endpoints) {
+        SetPoint(pt, true);
+    }
 }
 
 void OccupancyMap::SetPoint(const Vec2i& pt, bool occupy) {

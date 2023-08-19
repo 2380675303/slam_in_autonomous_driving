@@ -8,7 +8,7 @@
 #include "common/math_utils.h"
 #include "common/point_cloud_utils.h"
 
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -145,7 +145,46 @@ SE3 LoamLikeOdom::AlignWithLocalMap(CloudPtr edge, CloudPtr surf) {
         // gauss-newton 迭代
         // 最近邻，角点部分
         if (options_.use_edge_points_) {
-            std::for_each(std::execution::par_unseq, index_edge.begin(), index_edge.end(), [&](int idx) {
+            // std::for_each(std::execution::par_unseq, index_edge.begin(), index_edge.end(), [&](int idx) {
+            // Vec3d q = ToVec3d(edge->points[idx]);
+            // Vec3d qs = pose * q;
+
+            // // 检查最近邻
+            // std::vector<int> nn_indices;
+
+            // kdtree_edge_.GetClosestPoint(ToPointType(qs), nn_indices, 5);
+            // effect_edge[idx] = false;
+
+            // if (nn_indices.size() >= 3) {
+            //     std::vector<Vec3d> nn_eigen;
+            //     for (auto& n : nn_indices) {
+            //         nn_eigen.emplace_back(ToVec3d(local_map_edge_->points[n]));
+            //     }
+
+            //     // point to point residual
+            //     Vec3d d, p0;
+            //     if (!math::FitLine(nn_eigen, p0, d, options_.max_line_distance_)) {
+            //         return;
+            //     }
+
+            //     Vec3d err = SO3::hat(d) * (qs - p0);
+            //     if (err.norm() > options_.max_line_distance_) {
+            //         return;
+            //     }
+
+            //     effect_edge[idx] = true;
+
+            //     // build residual
+            //     Eigen::Matrix<double, 3, 6> J;
+            //     J.block<3, 3>(0, 0) = -SO3::hat(d) * pose.so3().matrix() * SO3::hat(q);
+            //     J.block<3, 3>(0, 3) = SO3::hat(d);
+
+            //     jacob_edge[idx] = J;
+            //     errors_edge[idx] = err;
+            // }
+            // });
+
+            for (int idx = 0; idx < index_surf.size(); ++idx) {
                 Vec3d q = ToVec3d(edge->points[idx]);
                 Vec3d qs = pose * q;
 
@@ -164,12 +203,12 @@ SE3 LoamLikeOdom::AlignWithLocalMap(CloudPtr edge, CloudPtr surf) {
                     // point to point residual
                     Vec3d d, p0;
                     if (!math::FitLine(nn_eigen, p0, d, options_.max_line_distance_)) {
-                        return;
+                        continue;  // TODO:验证是否正确;
                     }
 
                     Vec3d err = SO3::hat(d) * (qs - p0);
                     if (err.norm() > options_.max_line_distance_) {
-                        return;
+                        continue;  // TODO:验证是否正确;
                     }
 
                     effect_edge[idx] = true;
@@ -182,12 +221,51 @@ SE3 LoamLikeOdom::AlignWithLocalMap(CloudPtr edge, CloudPtr surf) {
                     jacob_edge[idx] = J;
                     errors_edge[idx] = err;
                 }
-            });
+            }
         }
 
         /// 最近邻，平面点部分
         if (options_.use_surf_points_) {
-            std::for_each(std::execution::par_unseq, index_surf.begin(), index_surf.end(), [&](int idx) {
+            // std::for_each(std::execution::par_unseq, index_surf.begin(), index_surf.end(), [&](int idx) {
+            //     Vec3d q = ToVec3d(surf->points[idx]);
+            //     Vec3d qs = pose * q;
+
+            //     // 检查最近邻
+            //     std::vector<int> nn_indices;
+
+            //     kdtree_surf_.GetClosestPoint(ToPointType(qs), nn_indices, 5);
+            //     effect_surf[idx] = false;
+
+            //     if (nn_indices.size() == 5) {
+            //         std::vector<Vec3d> nn_eigen;
+            //         for (auto& n : nn_indices) {
+            //             nn_eigen.emplace_back(ToVec3d(local_map_surf_->points[n]));
+            //         }
+
+            //         // 点面残差
+            //         Vec4d n;
+            //         if (!math::FitPlane(nn_eigen, n)) {
+            //             return;
+            //         }
+
+            //         double dis = n.head<3>().dot(qs) + n[3];
+            //         if (fabs(dis) > options_.max_plane_distance_) {
+            //             return;
+            //         }
+
+            //         effect_surf[idx] = true;
+
+            //         // build residual
+            //         Eigen::Matrix<double, 1, 6> J;
+            //         J.block<1, 3>(0, 0) = -n.head<3>().transpose() * pose.so3().matrix() * SO3::hat(q);
+            //         J.block<1, 3>(0, 3) = n.head<3>().transpose();
+
+            //         jacob_surf[idx] = J;
+            //         errors_surf[idx] = dis;
+            //     }
+            // });
+
+            for (int idx = 0; idx < index_surf.size(); ++idx) {
                 Vec3d q = ToVec3d(surf->points[idx]);
                 Vec3d qs = pose * q;
 
@@ -206,12 +284,12 @@ SE3 LoamLikeOdom::AlignWithLocalMap(CloudPtr edge, CloudPtr surf) {
                     // 点面残差
                     Vec4d n;
                     if (!math::FitPlane(nn_eigen, n)) {
-                        return;
+                        continue;  // TODO:验证是否正确;
                     }
 
                     double dis = n.head<3>().dot(qs) + n[3];
                     if (fabs(dis) > options_.max_plane_distance_) {
-                        return;
+                        continue;  // TODO:验证是否正确;
                     }
 
                     effect_surf[idx] = true;
@@ -224,7 +302,7 @@ SE3 LoamLikeOdom::AlignWithLocalMap(CloudPtr edge, CloudPtr surf) {
                     jacob_surf[idx] = J;
                     errors_surf[idx] = dis;
                 }
-            });
+            }
         }
 
         // 累加Hessian和error,计算dx

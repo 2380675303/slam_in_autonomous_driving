@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 #include <Eigen/SVD>
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -31,7 +31,31 @@ void Ndt3d::BuildVoxels() {
     });
 
     /// 计算每个体素中的均值和协方差
-    std::for_each(std::execution::par_unseq, grids_.begin(), grids_.end(), [this](auto& v) {
+    // std::for_each(std::execution::par_unseq, grids_.begin(), grids_.end(), [this](auto& v) {
+    //     if (v.second.idx_.size() > options_.min_pts_in_voxel_) {
+    //         // 要求至少有３个点
+    //         math::ComputeMeanAndCov(v.second.idx_, v.second.mu_, v.second.sigma_,
+    //                                 [this](const size_t& idx) { return ToVec3d(target_->points[idx]); });
+    //         // SVD 检查最大与最小奇异值，限制最小奇异值
+
+    //         Eigen::JacobiSVD svd(v.second.sigma_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    //         Vec3d lambda = svd.singularValues();
+    //         if (lambda[1] < lambda[0] * 1e-3) {
+    //             lambda[1] = lambda[0] * 1e-3;
+    //         }
+
+    //         if (lambda[2] < lambda[0] * 1e-3) {
+    //             lambda[2] = lambda[0] * 1e-3;
+    //         }
+
+    //         Mat3d inv_lambda = Vec3d(1.0 / lambda[0], 1.0 / lambda[1], 1.0 / lambda[2]).asDiagonal();
+
+    //         // v.second.info_ = (v.second.sigma_ + Mat3d::Identity() * 1e-3).inverse();  // 避免出nan
+    //         v.second.info_ = svd.matrixV() * inv_lambda * svd.matrixU().transpose();
+    //     }
+    // });
+
+    for (auto& v : grids_) {
         if (v.second.idx_.size() > options_.min_pts_in_voxel_) {
             // 要求至少有３个点
             math::ComputeMeanAndCov(v.second.idx_, v.second.mu_, v.second.sigma_,
@@ -53,7 +77,7 @@ void Ndt3d::BuildVoxels() {
             // v.second.info_ = (v.second.sigma_ + Mat3d::Identity() * 1e-3).inverse();  // 避免出nan
             v.second.info_ = svd.matrixV() * inv_lambda * svd.matrixU().transpose();
         }
-    });
+    }
 
     /// 删除点数不够的
     for (auto iter = grids_.begin(); iter != grids_.end();) {
@@ -97,7 +121,44 @@ bool Ndt3d::AlignNdt(SE3& init_pose) {
 
         // gauss-newton 迭代
         // 最近邻，可以并发
-        std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        //     auto q = ToVec3d(source_->points[idx]);
+        //     Vec3d qs = pose * q;  // 转换之后的q
+
+        //     // 计算qs所在的栅格以及它的最近邻栅格
+        //     Vec3i key = (qs * options_.inv_voxel_size_).cast<int>();
+
+        //     for (int i = 0; i < nearby_grids_.size(); ++i) {
+        //         auto key_off = key + nearby_grids_[i];
+        //         auto it = grids_.find(key_off);
+        //         int real_idx = idx * num_residual_per_point + i;
+        //         if (it != grids_.end()) {
+        //             auto& v = it->second;  // voxel
+        //             Vec3d e = qs - v.mu_;
+
+        //             // check chi2 th
+        //             double res = e.transpose() * v.info_ * e;
+        //             if (std::isnan(res) || res > options_.res_outlier_th_) {
+        //                 effect_pts[real_idx] = false;
+        //                 continue;
+        //             }
+
+        //             // build residual
+        //             Eigen::Matrix<double, 3, 6> J;
+        //             J.block<3, 3>(0, 0) = -pose.so3().matrix() * SO3::hat(q);
+        //             J.block<3, 3>(0, 3) = Mat3d::Identity();
+
+        //             jacobians[real_idx] = J;
+        //             errors[real_idx] = e;
+        //             infos[real_idx] = v.info_;
+        //             effect_pts[real_idx] = true;
+        //         } else {
+        //             effect_pts[real_idx] = false;
+        //         }
+        //     }
+        // });
+
+        for (int idx = 0; idx < index.size(); ++idx) {
             auto q = ToVec3d(source_->points[idx]);
             Vec3d qs = pose * q;  // 转换之后的q
 
@@ -132,7 +193,7 @@ bool Ndt3d::AlignNdt(SE3& init_pose) {
                     effect_pts[real_idx] = false;
                 }
             }
-        });
+        }
 
         // 累加Hessian和error,计算dx
         // 原则上可以用reduce并发，写起来比较麻烦，这里写成accumulate

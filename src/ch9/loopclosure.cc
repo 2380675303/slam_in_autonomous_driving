@@ -9,7 +9,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/registration/ndt.h>
 #include <yaml-cpp/yaml.h>
-#include <execution>
+// #include <execution>
 
 #include "common/lidar_utils.h"
 #include "common/point_cloud_utils.h"
@@ -86,8 +86,13 @@ void LoopClosure::DetectLoopCandidates() {
 
 void LoopClosure::ComputeLoopCandidates() {
     // 执行计算
-    std::for_each(std::execution::par_unseq, loop_candiates_.begin(), loop_candiates_.end(),
-                  [this](LoopCandidate& c) { ComputeForCandidate(c); });
+    // std::for_each(std::execution::par_unseq, loop_candiates_.begin(), loop_candiates_.end(),
+    //               [this](LoopCandidate& c) { ComputeForCandidate(c); });
+
+    for (LoopCandidate& c : loop_candiates_) {
+        ComputeForCandidate(c);
+    }
+
     // 保存成功的候选
     std::vector<LoopCandidate> succ_candidates;
     for (const auto& lc : loop_candiates_) {

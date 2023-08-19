@@ -4,7 +4,7 @@
 
 #include "ui_cloud.h"
 
-#include <execution>
+// #include <execution>
 #include <numeric>
 
 namespace sad::ui {
@@ -29,16 +29,27 @@ void UiCloud::SetCloud(CloudPtr cloud, const SE3& pose) {
     std::iota(idx.begin(), idx.end(), 0);
 
     SE3f pose_f = pose.cast<float>();
-    std::for_each(std::execution::par_unseq, idx.begin(), idx.end(), [&](const int& id) {
-        const auto& pt = cloud->points[id];
-        auto pt_world = pose_f * cloud->points[id].getVector3fMap();
-        xyz_data_[id] = Vec3f(pt_world.x(), pt_world.y(), pt_world.z());
-        color_data_pcl_[id] = IntensityToRgbPCL(pt.intensity);
-        color_data_gray_[id] = Vec4f(0.5, 0.5, 0.5, 0.2);
-        color_data_height_[id] = IntensityToRgbPCL(pt.z * 10);
-        color_data_intensity_[id] =
+    // std::for_each(std::execution::par_unseq, idx.begin(), idx.end(), [&](const int& id) {
+    //     const auto& pt = cloud->points[id];
+    //     auto pt_world = pose_f * cloud->points[id].getVector3fMap();
+    //     xyz_data_[id] = Vec3f(pt_world.x(), pt_world.y(), pt_world.z());
+    //     color_data_pcl_[id] = IntensityToRgbPCL(pt.intensity);
+    //     color_data_gray_[id] = Vec4f(0.5, 0.5, 0.5, 0.2);
+    //     color_data_height_[id] = IntensityToRgbPCL(pt.z * 10);
+    //     color_data_intensity_[id] =
+    //         Vec4f(pt.intensity / 255.0 * 3.0, pt.intensity / 255.0 * 3.0, pt.intensity / 255.0 * 3.0, 0.2);
+    // });
+
+    for (int i = 0; i < idx.size(); ++i) {
+        const auto& pt = cloud->points[idx[i]];
+        auto pt_world = pose_f * cloud->points[idx[i]].getVector3fMap();
+        xyz_data_[i] = Vec3f(pt_world.x(), pt_world.y(), pt_world.z());
+        color_data_pcl_[i] = IntensityToRgbPCL(pt.intensity);
+        color_data_gray_[i] = Vec4f(0.5, 0.5, 0.5, 0.2);
+        color_data_height_[i] = IntensityToRgbPCL(pt.z * 10);
+        color_data_intensity_[i] =
             Vec4f(pt.intensity / 255.0 * 3.0, pt.intensity / 255.0 * 3.0, pt.intensity / 255.0 * 3.0, 0.2);
-    });
+    }
 
     vbo_ = pangolin::GlBuffer(pangolin::GlArrayBuffer, xyz_data_);
 }

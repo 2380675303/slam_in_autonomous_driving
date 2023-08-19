@@ -7,7 +7,7 @@
 #include "common/timer/timer.h"
 
 #include <glog/logging.h>
-#include <execution>
+// #include <execution>
 #include <set>
 
 namespace sad {
@@ -39,8 +39,13 @@ void IncNdt3d::AddCloud(CloudPtr cloud_world) {
     }
 
     // 更新active_voxels
-    std::for_each(std::execution::par_unseq, active_voxels.begin(), active_voxels.end(),
-                  [this](const auto& key) { UpdateVoxel(grids_[key]->second); });
+    // std::for_each(std::execution::par_unseq, active_voxels.begin(), active_voxels.end(),
+    //               [this](const auto& key) { UpdateVoxel(grids_[key]->second); });
+
+    for (const auto& key : active_voxels) {
+        UpdateVoxel(grids_[key]->second);
+    }
+
     flag_first_scan_ = false;
 }
 
@@ -134,7 +139,45 @@ bool IncNdt3d::AlignNdt(SE3& init_pose) {
 
         // gauss-newton 迭代
         // 最近邻，可以并发
-        std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        //     auto q = ToVec3d(source_->points[idx]);
+        //     Vec3d qs = pose * q;  // 转换之后的q
+
+        //     // 计算qs所在的栅格以及它的最近邻栅格
+        //     Vec3i key = (qs * options_.inv_voxel_size_).cast<int>();
+
+        //     for (int i = 0; i < nearby_grids_.size(); ++i) {
+        //         Vec3i real_key = key + nearby_grids_[i];
+        //         auto it = grids_.find(real_key);
+        //         int real_idx = idx * num_residual_per_point + i;
+        //         /// 这里要检查高斯分布是否已经估计
+        //         if (it != grids_.end() && it->second->second.ndt_estimated_) {
+        //             auto& v = it->second->second;  // voxel
+        //             Vec3d e = qs - v.mu_;
+
+        //             // check chi2 th
+        //             double res = e.transpose() * v.info_ * e;
+        //             if (std::isnan(res) || res > options_.res_outlier_th_) {
+        //                 effect_pts[real_idx] = false;
+        //                 continue;
+        //             }
+
+        //             // build residual
+        //             Eigen::Matrix<double, 3, 6> J;
+        //             J.block<3, 3>(0, 0) = -pose.so3().matrix() * SO3::hat(q);
+        //             J.block<3, 3>(0, 3) = Mat3d::Identity();
+
+        //             jacobians[real_idx] = J;
+        //             errors[real_idx] = e;
+        //             infos[real_idx] = v.info_;
+        //             effect_pts[real_idx] = true;
+        //         } else {
+        //             effect_pts[real_idx] = false;
+        //         }
+        //     }
+        // });
+
+        for (int idx = 0; idx < index.size(); ++idx) {
             auto q = ToVec3d(source_->points[idx]);
             Vec3d qs = pose * q;  // 转换之后的q
 
@@ -170,7 +213,7 @@ bool IncNdt3d::AlignNdt(SE3& init_pose) {
                     effect_pts[real_idx] = false;
                 }
             }
-        });
+        }
 
         // 累加Hessian和error,计算dx
         double total_res = 0;
@@ -241,7 +284,46 @@ void IncNdt3d::ComputeResidualAndJacobians(const SE3& input_pose, Mat18d& HTVH, 
 
     // gauss-newton 迭代
     // 最近邻，可以并发
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+    //     auto q = ToVec3d(source_->points[idx]);
+    //     Vec3d qs = pose * q;  // 转换之后的q
+
+    //     // 计算qs所在的栅格以及它的最近邻栅格
+    //     Vec3i key = (qs * options_.inv_voxel_size_).cast<int>();
+
+    //     for (int i = 0; i < nearby_grids_.size(); ++i) {
+    //         Vec3i real_key = key + nearby_grids_[i];
+    //         auto it = grids_.find(real_key);
+    //         int real_idx = idx * num_residual_per_point + i;
+    //         /// 这里要检查高斯分布是否已经估计
+    //         if (it != grids_.end() && it->second->second.ndt_estimated_) {
+    //             auto& v = it->second->second;  // voxel
+    //             Vec3d e = qs - v.mu_;
+
+    //             // check chi2 th
+    //             double res = e.transpose() * v.info_ * e;
+    //             if (std::isnan(res) || res > options_.res_outlier_th_) {
+    //                 effect_pts[real_idx] = false;
+    //                 continue;
+    //             }
+
+    //             // build residual
+    //             Eigen::Matrix<double, 3, 18> J;
+    //             J.setZero();
+    //             J.block<3, 3>(0, 0) = Mat3d::Identity();                   // 对p
+    //             J.block<3, 3>(0, 6) = -pose.so3().matrix() * SO3::hat(q);  // 对R
+
+    //             jacobians[real_idx] = J;
+    //             errors[real_idx] = e;
+    //             infos[real_idx] = v.info_;
+    //             effect_pts[real_idx] = true;
+    //         } else {
+    //             effect_pts[real_idx] = false;
+    //         }
+    //     }
+    // });
+
+    for (int idx = 0; idx < index.size(); ++idx) {
         auto q = ToVec3d(source_->points[idx]);
         Vec3d qs = pose * q;  // 转换之后的q
 
@@ -278,7 +360,7 @@ void IncNdt3d::ComputeResidualAndJacobians(const SE3& input_pose, Mat18d& HTVH, 
                 effect_pts[real_idx] = false;
             }
         }
-    });
+    }
 
     // 累加Hessian和error,计算dx
     double total_res = 0;

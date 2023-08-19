@@ -5,7 +5,7 @@
 #include "icp_3d.h"
 #include "common/math_utils.h"
 
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -32,7 +32,37 @@ bool Icp3d::AlignP2P(SE3& init_pose) {
     for (int iter = 0; iter < options_.max_iteration_; ++iter) {
         // gauss-newton 迭代
         // 最近邻，可以并发
-        std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        //     auto q = ToVec3d(source_->points[idx]);
+        //     Vec3d qs = pose * q;  // 转换之后的q
+        //     std::vector<int> nn;
+        //     kdtree_->GetClosestPoint(ToPointType(qs), nn, 1);
+
+        //     if (!nn.empty()) {
+        //         Vec3d p = ToVec3d(target_->points[nn[0]]);
+        //         double dis2 = (p - qs).squaredNorm();
+        //         if (dis2 > options_.max_nn_distance_) {
+        //             // 点离的太远了不要
+        //             effect_pts[idx] = false;
+        //             return;
+        //         }
+
+        //         effect_pts[idx] = true;
+
+        //         // build residual
+        //         Vec3d e = p - qs;
+        //         Eigen::Matrix<double, 3, 6> J;
+        //         J.block<3, 3>(0, 0) = pose.so3().matrix() * SO3::hat(q);
+        //         J.block<3, 3>(0, 3) = -Mat3d::Identity();
+
+        //         jacobians[idx] = J;
+        //         errors[idx] = e;
+        //     } else {
+        //         effect_pts[idx] = false;
+        //     }
+        // });
+
+        for (int idx = 0; idx < index.size(); ++idx) {
             auto q = ToVec3d(source_->points[idx]);
             Vec3d qs = pose * q;  // 转换之后的q
             std::vector<int> nn;
@@ -44,7 +74,7 @@ bool Icp3d::AlignP2P(SE3& init_pose) {
                 if (dis2 > options_.max_nn_distance_) {
                     // 点离的太远了不要
                     effect_pts[idx] = false;
-                    return;
+                    continue;  // TODO:验证是否正确
                 }
 
                 effect_pts[idx] = true;
@@ -60,7 +90,7 @@ bool Icp3d::AlignP2P(SE3& init_pose) {
             } else {
                 effect_pts[idx] = false;
             }
-        });
+        }
 
         // 累加Hessian和error,计算dx
         // 原则上可以用reduce并发，写起来比较麻烦，这里写成accumulate
@@ -133,7 +163,47 @@ bool Icp3d::AlignP2Plane(SE3& init_pose) {
     for (int iter = 0; iter < options_.max_iteration_; ++iter) {
         // gauss-newton 迭代
         // 最近邻，可以并发
-        std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        //     auto q = ToVec3d(source_->points[idx]);
+        //     Vec3d qs = pose * q;  // 转换之后的q
+        //     std::vector<int> nn;
+        //     kdtree_->GetClosestPoint(ToPointType(qs), nn, 5);  // 这里取5个最近邻
+        //     if (nn.size() > 3) {
+        //         // convert to eigen
+        //         std::vector<Vec3d> nn_eigen;
+        //         for (int i = 0; i < nn.size(); ++i) {
+        //             nn_eigen.emplace_back(ToVec3d(target_->points[nn[i]]));
+        //         }
+
+        //         Vec4d n;
+        //         if (!math::FitPlane(nn_eigen, n)) {
+        //             // 失败的不要
+        //             effect_pts[idx] = false;
+        //             return;
+        //         }
+
+        //         double dis = n.head<3>().dot(qs) + n[3];
+        //         if (fabs(dis) > options_.max_plane_distance_) {
+        //             // 点离的太远了不要
+        //             effect_pts[idx] = false;
+        //             return;
+        //         }
+
+        //         effect_pts[idx] = true;
+
+        //         // build residual
+        //         Eigen::Matrix<double, 1, 6> J;
+        //         J.block<1, 3>(0, 0) = -n.head<3>().transpose() * pose.so3().matrix() * SO3::hat(q);
+        //         J.block<1, 3>(0, 3) = n.head<3>().transpose();
+
+        //         jacobians[idx] = J;
+        //         errors[idx] = dis;
+        //     } else {
+        //         effect_pts[idx] = false;
+        //     }
+        // });
+
+        for (int idx = 0; idx < index.size(); ++idx) {
             auto q = ToVec3d(source_->points[idx]);
             Vec3d qs = pose * q;  // 转换之后的q
             std::vector<int> nn;
@@ -149,14 +219,14 @@ bool Icp3d::AlignP2Plane(SE3& init_pose) {
                 if (!math::FitPlane(nn_eigen, n)) {
                     // 失败的不要
                     effect_pts[idx] = false;
-                    return;
+                    continue;  // TODO:验证是否正确
                 }
 
                 double dis = n.head<3>().dot(qs) + n[3];
                 if (fabs(dis) > options_.max_plane_distance_) {
                     // 点离的太远了不要
                     effect_pts[idx] = false;
-                    return;
+                    continue;  // TODO:验证是否正确
                 }
 
                 effect_pts[idx] = true;
@@ -171,7 +241,7 @@ bool Icp3d::AlignP2Plane(SE3& init_pose) {
             } else {
                 effect_pts[idx] = false;
             }
-        });
+        }
 
         // 累加Hessian和error,计算dx
         // 原则上可以用reduce并发，写起来比较麻烦，这里写成accumulate
@@ -251,7 +321,48 @@ bool Icp3d::AlignP2Line(SE3& init_pose) {
     for (int iter = 0; iter < options_.max_iteration_; ++iter) {
         // gauss-newton 迭代
         // 最近邻，可以并发
-        std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int idx) {
+        //     auto q = ToVec3d(source_->points[idx]);
+        //     Vec3d qs = pose * q;  // 转换之后的q
+        //     std::vector<int> nn;
+        //     kdtree_->GetClosestPoint(ToPointType(qs), nn, 5);  // 这里取5个最近邻
+        //     if (nn.size() == 5) {
+        //         // convert to eigen
+        //         std::vector<Vec3d> nn_eigen;
+        //         for (int i = 0; i < 5; ++i) {
+        //             nn_eigen.emplace_back(ToVec3d(target_->points[nn[i]]));
+        //         }
+
+        //         Vec3d d, p0;
+        //         if (!math::FitLine(nn_eigen, p0, d, options_.max_line_distance_)) {
+        //             // 失败的不要
+        //             effect_pts[idx] = false;
+        //             return;
+        //         }
+
+        //         Vec3d err = SO3::hat(d) * (qs - p0);
+
+        //         if (err.norm() > options_.max_line_distance_) {
+        //             // 点离的太远了不要
+        //             effect_pts[idx] = false;
+        //             return;
+        //         }
+
+        //         effect_pts[idx] = true;
+
+        //         // build residual
+        //         Eigen::Matrix<double, 3, 6> J;
+        //         J.block<3, 3>(0, 0) = -SO3::hat(d) * pose.so3().matrix() * SO3::hat(q);
+        //         J.block<3, 3>(0, 3) = SO3::hat(d);
+
+        //         jacobians[idx] = J;
+        //         errors[idx] = err;
+        //     } else {
+        //         effect_pts[idx] = false;
+        //     }
+        // });
+
+        for (int idx = 0; idx < index.size(); ++idx) {
             auto q = ToVec3d(source_->points[idx]);
             Vec3d qs = pose * q;  // 转换之后的q
             std::vector<int> nn;
@@ -267,7 +378,7 @@ bool Icp3d::AlignP2Line(SE3& init_pose) {
                 if (!math::FitLine(nn_eigen, p0, d, options_.max_line_distance_)) {
                     // 失败的不要
                     effect_pts[idx] = false;
-                    return;
+                    continue;  // TODO:验证是否正确;
                 }
 
                 Vec3d err = SO3::hat(d) * (qs - p0);
@@ -275,7 +386,7 @@ bool Icp3d::AlignP2Line(SE3& init_pose) {
                 if (err.norm() > options_.max_line_distance_) {
                     // 点离的太远了不要
                     effect_pts[idx] = false;
-                    return;
+                    continue;  // TODO:验证是否正确;
                 }
 
                 effect_pts[idx] = true;
@@ -290,7 +401,7 @@ bool Icp3d::AlignP2Line(SE3& init_pose) {
             } else {
                 effect_pts[idx] = false;
             }
-        });
+        }
 
         // 累加Hessian和error,计算dx
         // 原则上可以用reduce并发，写起来比较麻烦，这里写成accumulate

@@ -8,7 +8,7 @@
 #include "ch6/submap.h"
 
 #include <glog/logging.h>
-#include <execution>
+// #include <execution>
 #include <opencv2/opencv.hpp>
 
 namespace sad {
@@ -208,7 +208,38 @@ cv::Mat Mapping2D::ShowGlobalMap(int max_size) {
         }
     }
 
-    std::for_each(std::execution::par_unseq, render_data.begin(), render_data.end(), [&](const Vec2i& xy) {
+    // std::for_each(std::execution::par_unseq, render_data.begin(), render_data.end(), [&](const Vec2i& xy) {
+    //     int x = xy[0], y = xy[1];
+    //     Vec2f pw = (Vec2f(x, y) - center_image) / global_map_resolution + c;  // 世界坐标
+
+    //     for (auto& m : all_submaps_) {
+    //         Vec2f ps = m->GetPose().inverse().cast<float>() * pw;  // in submap
+    //         Vec2i pt = (ps * submap_resolution + Vec2f(500, 500)).cast<int>();
+
+    //         if (pt[0] < 0 || pt[0] >= 1000 || pt[1] < 0 || pt[1] >= 1000) {
+    //             continue;
+    //         }
+
+    //         uchar value = m->GetOccuMap().GetOccupancyGrid().at<uchar>(pt[1], pt[0]);
+    //         if (value > 127) {
+    //             if (m == current_submap_) {
+    //                 output_image.at<cv::Vec3b>(y, x) = cv::Vec3b(235, 250, 230);
+    //             } else {
+    //                 output_image.at<cv::Vec3b>(y, x) = cv::Vec3b(255, 255, 255);
+    //             }
+    //             break;
+    //         } else if (value < 127) {
+    //             if (m == current_submap_) {
+    //                 output_image.at<cv::Vec3b>(y, x) = cv::Vec3b(230, 20, 30);
+    //             } else {
+    //                 output_image.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+    //             }
+    //             break;
+    //         }
+    //     }
+    // });
+
+    for (const Vec2i& xy : render_data) {
         int x = xy[0], y = xy[1];
         Vec2f pw = (Vec2f(x, y) - center_image) / global_map_resolution + c;  // 世界坐标
 
@@ -237,7 +268,7 @@ cv::Mat Mapping2D::ShowGlobalMap(int max_size) {
                 break;
             }
         }
-    });
+    }
 
     for (auto& m : all_submaps_) {
         /// submap pose 在全局地图中的投影

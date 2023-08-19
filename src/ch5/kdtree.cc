@@ -6,7 +6,7 @@
 #include "common/math_utils.h"
 
 #include <glog/logging.h>
-#include <execution>
+// #include <execution>
 #include <set>
 
 namespace sad {
@@ -95,7 +95,20 @@ bool KdTree::GetClosestPointMT(const CloudPtr &cloud, std::vector<std::pair<size
         index[i] = i;
     }
 
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &cloud, &matches, &k](int idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &cloud, &matches, &k](int idx) {
+    //     std::vector<int> closest_idx;
+    //     GetClosestPoint(cloud->points[idx], closest_idx, k);
+    //     for (int i = 0; i < k; ++i) {
+    //         matches[idx * k + i].second = idx;
+    //         if (i < closest_idx.size()) {
+    //             matches[idx * k + i].first = closest_idx[i];
+    //         } else {
+    //             matches[idx * k + i].first = math::kINVALID_ID;
+    //         }
+    //     }
+    // });
+
+    for (int idx = 0; idx < index.size(); ++idx) {
         std::vector<int> closest_idx;
         GetClosestPoint(cloud->points[idx], closest_idx, k);
         for (int i = 0; i < k; ++i) {
@@ -106,7 +119,7 @@ bool KdTree::GetClosestPointMT(const CloudPtr &cloud, std::vector<std::pair<size
                 matches[idx * k + i].first = math::kINVALID_ID;
             }
         }
-    });
+    }
 
     return true;
 }

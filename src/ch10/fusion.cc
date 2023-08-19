@@ -2,7 +2,7 @@
 // Created by xiang on 22-12-20.
 //
 #include <yaml-cpp/yaml.h>
-#include <execution>
+// #include <execution>
 
 #include "common/lidar_utils.h"
 #include "fusion.h"
@@ -106,7 +106,25 @@ void Fusion::Undistort() {
     SE3 T_end = SE3(imu_state.R_, imu_state.p_);
 
     /// 将所有点转到最后时刻状态上
-    std::for_each(std::execution::par_unseq, cloud->points.begin(), cloud->points.end(), [&](auto& pt) {
+    // std::for_each(std::execution::par_unseq, cloud->points.begin(), cloud->points.end(), [&](auto& pt) {
+    //     SE3 Ti = T_end;
+    //     NavStated match;
+
+    //     // 根据pt.time查找时间，pt.time是该点打到的时间与雷达开始时间之差，单位为毫秒
+    //     math::PoseInterp<NavStated>(
+    //         measures_.lidar_begin_time_ + pt.time * 1e-3, imu_states_, [](const NavStated& s) { return s.timestamp_;
+    //         },
+    //         [](const NavStated& s) { return s.GetSE3(); }, Ti, match);
+
+    //     Vec3d pi = ToVec3d(pt);
+    //     Vec3d p_compensate = TIL_.inverse() * T_end.inverse() * Ti * TIL_ * pi;
+
+    //     pt.x = p_compensate(0);
+    //     pt.y = p_compensate(1);
+    //     pt.z = p_compensate(2);
+    // });
+
+    for (auto& pt : cloud->points) {
         SE3 Ti = T_end;
         NavStated match;
 
@@ -121,7 +139,8 @@ void Fusion::Undistort() {
         pt.x = p_compensate(0);
         pt.y = p_compensate(1);
         pt.z = p_compensate(2);
-    });
+    }
+
     scan_undistort_ = cloud;
 }
 
@@ -170,8 +189,12 @@ bool Fusion::SearchRTK() {
     }
 
     LOG(INFO) << "grid search poses: " << search_poses.size();
-    std::for_each(std::execution::par_unseq, search_poses.begin(), search_poses.end(),
-                  [this](GridSearchResult& gr) { AlignForGrid(gr); });
+    // std::for_each(std::execution::par_unseq, search_poses.begin(), search_poses.end(),
+    //               [this](GridSearchResult& gr) { AlignForGrid(gr); });
+
+    for (GridSearchResult& gr : search_poses) {
+        AlignForGrid(gr);
+    }
 
     // 选择最优的匹配结果
     auto max_ele = std::max_element(search_poses.begin(), search_poses.end(),

@@ -3,7 +3,7 @@
 //
 
 #include "ch5/bfnn.h"
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -43,10 +43,14 @@ void bfnn_cloud_mt(CloudPtr cloud1, CloudPtr cloud2, std::vector<std::pair<size_
 
     // 并行化for_each
     matches.resize(index.size());
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](auto idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](auto idx) {
+    //     matches[idx].second = idx;
+    //     matches[idx].first = bfnn_point(cloud1, ToVec3f(cloud2->points[idx]));
+    // });
+    for (int idx = 0; idx < index.size(); ++idx) {
         matches[idx].second = idx;
         matches[idx].first = bfnn_point(cloud1, ToVec3f(cloud2->points[idx]));
-    });
+    };
 }
 
 void bfnn_cloud(CloudPtr cloud1, CloudPtr cloud2, std::vector<std::pair<size_t, size_t>>& matches) {
@@ -55,10 +59,14 @@ void bfnn_cloud(CloudPtr cloud1, CloudPtr cloud2, std::vector<std::pair<size_t, 
     std::for_each(index.begin(), index.end(), [idx = 0](size_t& i) mutable { i = idx++; });
 
     matches.resize(index.size());
-    std::for_each(std::execution::seq, index.begin(), index.end(), [&](auto idx) {
+    // std::for_each(std::execution::seq, index.begin(), index.end(), [&](auto idx) {
+    //     matches[idx].second = idx;
+    //     matches[idx].first = bfnn_point(cloud1, ToVec3f(cloud2->points[idx]));
+    // });
+    for (int idx = 0; idx < index.size(); ++idx) {
         matches[idx].second = idx;
         matches[idx].first = bfnn_point(cloud1, ToVec3f(cloud2->points[idx]));
-    });
+    }
 }
 
 void bfnn_cloud_mt_k(CloudPtr cloud1, CloudPtr cloud2, std::vector<std::pair<size_t, size_t>>& matches, int k) {
@@ -68,13 +76,20 @@ void bfnn_cloud_mt_k(CloudPtr cloud1, CloudPtr cloud2, std::vector<std::pair<siz
 
     // 并行化for_each
     matches.resize(index.size() * k);
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](auto idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](auto idx) {
+    //     auto v = bfnn_point_k(cloud1, ToVec3f(cloud2->points[idx]), k);
+    //     for (int i = 0; i < v.size(); ++i) {
+    //         matches[idx * k + i].first = v[i];
+    //         matches[idx * k + i].second = idx;
+    //     }
+    // });
+    for (int idx = 0; idx < index.size(); ++idx) {
         auto v = bfnn_point_k(cloud1, ToVec3f(cloud2->points[idx]), k);
         for (int i = 0; i < v.size(); ++i) {
             matches[idx * k + i].first = v[i];
             matches[idx * k + i].second = idx;
         }
-    });
+    }
 }
 
 }  // namespace sad

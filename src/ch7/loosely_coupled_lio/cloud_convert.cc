@@ -2,7 +2,7 @@
 
 #include <glog/logging.h>
 #include <yaml-cpp/yaml.h>
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -42,7 +42,26 @@ void CloudConvert::AviaHandler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
         index[i] = i + 1;  // 从1开始
     }
 
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](const uint &i) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](const uint &i) {
+    //     if ((msg->points[i].line < num_scans_) &&
+    //         ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00)) {
+    //         if (i % point_filter_num_ == 0) {
+    //             cloud_full_[i].x = msg->points[i].x;
+    //             cloud_full_[i].y = msg->points[i].y;
+    //             cloud_full_[i].z = msg->points[i].z;
+    //             cloud_full_[i].intensity = msg->points[i].reflectivity;
+    //             cloud_full_[i].time = msg->points[i].offset_time / float(1000000);
+
+    //             if ((abs(cloud_full_[i].x - cloud_full_[i - 1].x) > 1e-7) ||
+    //                 (abs(cloud_full_[i].y - cloud_full_[i - 1].y) > 1e-7) ||
+    //                 (abs(cloud_full_[i].z - cloud_full_[i - 1].z) > 1e-7)) {
+    //                 is_valid_pt[i] = true;
+    //             }
+    //         }
+    //     }
+    // });
+
+    for (int i = 0; i < index.size(); ++i) {
         if ((msg->points[i].line < num_scans_) &&
             ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00)) {
             if (i % point_filter_num_ == 0) {
@@ -59,7 +78,7 @@ void CloudConvert::AviaHandler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
                 }
             }
         }
-    });
+    }
 
     for (uint i = 1; i < plsize; i++) {
         if (is_valid_pt[i]) {

@@ -46,6 +46,7 @@ set(g2o_libs
         ${CSPARSE_LIBRARY}
         ${CHOLMOD_LIBRARY}
         )
+message("G2O dir: " ${PROJECT_SOURCE_DIR}/thirdparty/g2o/)
 
 # ros
 # 为了2D scan, pointcloud2
@@ -59,8 +60,11 @@ find_package(catkin REQUIRED COMPONENTS
         )
 include_directories(${catkin_INCLUDE_DIRS})
 
+set(PANGOLIN_DIR /home/ys/ZJ_ROBOT/3rdparty)
 find_package(Pangolin REQUIRED)
 include_directories(${Pangolin_INCLUDE_DIRS})
+message("Pangolin_INCLUDE_DIRS: " ${Pangolin_INCLUDE_DIRS})
+message("Pangolin_LIBRARIES: "${Pangolin_LIBRARIES})
 
 # yaml-cpp
 find_package(yaml-cpp REQUIRED)

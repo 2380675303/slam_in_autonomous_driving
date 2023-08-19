@@ -10,7 +10,7 @@
 #include "common/point_types.h"
 
 #include <glog/logging.h>
-#include <execution>
+// #include <execution>
 #include <map>
 
 namespace sad {
@@ -192,7 +192,18 @@ bool GridNN<dim>::GetClosestPointForCloudMT(CloudPtr ref, CloudPtr query,
     std::for_each(index.begin(), index.end(), [idx = 0](size_t& i) mutable { i = idx++; });
     matches.resize(index.size());
 
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &matches, &query](const size_t& idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &matches, &query](const size_t& idx)
+    // {
+    //     PointType cp;
+    //     size_t cp_idx;
+    //     if (GetClosestPoint(query->points[idx], cp, cp_idx)) {
+    //         matches[idx] = {cp_idx, idx};
+    //     } else {
+    //         matches[idx] = {math::kINVALID_ID, math::kINVALID_ID};
+    //     }
+    // });
+
+    for (int idx = 0; idx < index.size(); ++idx) {
         PointType cp;
         size_t cp_idx;
         if (GetClosestPoint(query->points[idx], cp, cp_idx)) {
@@ -200,7 +211,7 @@ bool GridNN<dim>::GetClosestPointForCloudMT(CloudPtr ref, CloudPtr query,
         } else {
             matches[idx] = {math::kINVALID_ID, math::kINVALID_ID};
         }
-    });
+    }
 
     return true;
 }

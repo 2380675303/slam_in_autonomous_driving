@@ -5,7 +5,7 @@
 #include "octo_tree.h"
 #include "common/math_utils.h"
 
-#include <execution>
+// #include <execution>
 
 namespace sad {
 
@@ -147,7 +147,20 @@ bool OctoTree::GetClosestPointMT(const CloudPtr &cloud, std::vector<std::pair<si
         index[i] = i;
     }
 
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &cloud, &matches, &k](int idx) {
+    // std::for_each(std::execution::par_unseq, index.begin(), index.end(), [this, &cloud, &matches, &k](int idx) {
+    //     std::vector<int> closest_idx;
+    //     GetClosestPoint(cloud->points[idx], closest_idx, k);
+
+    //     for (int i = 0; i < k; ++i) {
+    //         matches[idx * k + i].second = idx;
+    //         if (i < closest_idx.size()) {
+    //             matches[idx * k + i].first = closest_idx[i];
+    //         } else {
+    //             matches[idx * k + i].first = math::kINVALID_ID;
+    //         }
+    //     }
+    // });
+    for (int idx = 0; idx < index.size(); ++idx) {
         std::vector<int> closest_idx;
         GetClosestPoint(cloud->points[idx], closest_idx, k);
 
@@ -159,7 +172,7 @@ bool OctoTree::GetClosestPointMT(const CloudPtr &cloud, std::vector<std::pair<si
                 matches[idx * k + i].first = math::kINVALID_ID;
             }
         }
-    });
+    };
 
     return true;
 }
